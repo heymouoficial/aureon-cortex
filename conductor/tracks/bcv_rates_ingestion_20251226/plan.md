@@ -6,9 +6,13 @@
 Develop and test the core Supabase Edge Function responsible for fetching, parsing, and storing BCV exchange rates.
 
 ### Tasks
-- [ ] Task: Set up Supabase Edge Function environment
-    - [ ] Task: Create new Supabase Edge Function for BCV rates ingestion.
-    - [ ] Task: Implement basic function structure and local testing setup.
+- [x] Task: Adapt existing Supabase Edge Function for BCV rates ingestion
+    - [x] Task: Modify the existing `bcv-rates` function to align with the `spec.md`.
+    - [x] Task: Update the data model to store rates per currency and date.
+    - [x] Task: Refactor the code to support this new data model.
+- [x] Task: Create tests for the Edge Function
+    - [ ] Task: Create a new test file for the `bcv-rates` function.
+    - [x] Task: Write tests for data fetching, parsing, and storage logic.
 - [ ] Task: Implement data fetching from BCV source
     - [ ] Task: Research and identify the official BCV data source URL and structure.
     - [ ] Task: Write code to make HTTP requests and retrieve raw data.
