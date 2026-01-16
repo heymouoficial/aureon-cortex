@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None
     GOOGLE_REFRESH_TOKEN: str | None = None
+    
+    # Advanced MCP Keys
+    PINECONE_API_KEY: str | None = None
+    CONTEXT7_API_KEY: str | None = None
+    GITHUB_TOKEN: str | None = None
 
     # Webhook Domain (Cloudflare/VPS IP)
     DOMAIN: str | None = None
