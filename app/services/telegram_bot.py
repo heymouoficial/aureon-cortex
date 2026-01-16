@@ -153,6 +153,7 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user_id = update.effective_user.id
         username = update.effective_user.username or "Unknown"
+        chat_id = update.effective_chat.id
         
         # 🔒 SECURITY CHECK (WHITELIST & GROUPS)
         is_private = update.effective_chat.type == "private"
