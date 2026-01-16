@@ -1,0 +1,124 @@
+"""
+Vox - La Voz de Aureon (Comunicación)
+Model: Gemini 2.0 Flash (with fallback to 1.5-flash)
+"""
+import os
+from typing import Dict, Any, Optional, List
+from loguru import logger
+from pydantic_ai import Agent
+from app.core.config import get_settings
+from app.utils.hydra import hydra_pool
+
+settings = get_settings()
+
+# List of models to try in order (fallback chain)
+MODEL_CHAIN = [
+    "google-gla:gemini-2.0-flash",
+    "google-gla:gemini-1.5-flash",
+    "google-gla:gemini-1.5-flash-8b",
+]
+
+
+class Vox:
+    """
+    🎙️ Vox - La Voz de Aureon.
+    Sintetiza información y comunica con el usuario final.
+    With fallback models for resilience.
+    """
+    
+    SYSTEM_PROMPT = """Eres Vox, la voz cálida y profesional de Aureon.
+Eres el punto de contacto final con el usuario. Tu misión: claridad y conexión.
+
+PERSONALIDAD:
+- Carismático y accesible
+- Profesional pero cercano
+- Español Venezolano natural
+
+REGLAS:
+- Respuestas concisas (máx 3 párrafos)
+- Usa emojis con moderación (máx 2)
+- Siempre ofrece un siguiente paso cuando sea apropiado
+- Si no sabes algo, sé honesto"""
+
+    def __init__(self):
+        self.agent = None
+        self.current_model = None
+        self.current_key = None
+        self._init_agent()
+    
+    def _init_agent(self, model_index: int = 0):
+        """Initialize with Gemini, with fallback models."""
+        if model_index >= len(MODEL_CHAIN):
+            logger.error("❌ Vox: All models exhausted!")
+            return False
+        
+        try:
+            key = hydra_pool.get_active_key() or settings.GEMINI_API_KEY
+            if key:
+                os.environ["GEMINI_API_KEY"] = key
+                self.current_key = key
+                self.current_model = MODEL_CHAIN[model_index]
+                
+                self.agent = Agent(
+                    model=self.current_model,
+                    system_prompt=self.SYSTEM_PROMPT
+                )
+                logger.info(f"🎙️ Vox inicializado con {self.current_model}")
+                return True
+            else:
+                logger.warning("⚠️ No Gemini key available for Vox")
+                return False
+        except Exception as e:
+            logger.error(f"❌ Vox init error with {MODEL_CHAIN[model_index]}: {e}")
+            return self._init_agent(model_index + 1)
+
+    async def respond(
+        self, 
+        query: str, 
+        context: Optional[Dict[str, Any]] = None,
+        attachments: Optional[List[Dict[str, Any]]] = None
+    ) -> str:
+        """Generate user-facing response with fallback."""
+        if not self.agent:
+            if not self._init_agent():
+                return "🎙️ Vox está reconectando. Inténtalo en un minuto."
+        
+        enriched = query
+        if context and context.get("userName"):
+            enriched = f"[Usuario: {context['userName']}] {query}"
+        if attachments:
+            enriched += f"\n[Adjuntos: {len(attachments)}]"
+        
+        # Try with current model, fallback if needed
+        for attempt in range(len(MODEL_CHAIN)):
+            try:
+                result = await self.agent.run(enriched)
+                logger.info(f"🎙️ Vox respondió ({len(result.data)} chars) via {self.current_model}")
+                return result.data
+                
+            except Exception as e:
+                error_str = str(e)
+                logger.error(f"❌ Vox error (attempt {attempt + 1}): {e}")
+                
+                # Report failure to Hydra
+                if self.current_key and ("429" in error_str or "RESOURCE_EXHAUSTED" in error_str):
+                    hydra_pool.report_failure(self.current_key, 429)
+                elif self.current_key:
+                    hydra_pool.report_failure(self.current_key, 500)
+                
+                # Try to reinitialize with next key/model
+                model_idx = MODEL_CHAIN.index(self.current_model) if self.current_model in MODEL_CHAIN else 0
+                
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    # Get new key, same model
+                    if not self._init_agent(model_idx):
+                        # No keys left, try next model
+                        self._init_agent(model_idx + 1)
+                else:
+                    # Other error, try next model
+                    self._init_agent(model_idx + 1)
+                
+                if not self.agent:
+                    break
+        
+        return "🎙️ Mis neuronas necesitan un respiro. Inténtalo en un minuto."

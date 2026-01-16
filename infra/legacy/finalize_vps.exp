@@ -1,0 +1,60 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "root@72.62.171.113"
+set password "Equidistante2085.-"
+set remote_file "/opt/aureon-cortex/.env.cortex"
+
+# Arguments passed from the wrapper script
+set supabase_url [lindex $argv 0]
+set supabase_key [lindex $argv 1]
+set gemini_key [lindex $argv 2]
+set telegram_token [lindex $argv 3]
+set n8n_key [lindex $argv 4]
+set n8n_url [lindex $argv 5]
+set notion_token [lindex $argv 6]
+set gemini_pool [lindex $argv 7]
+set hostinger_key [lindex $argv 8]
+set mistral_key [lindex $argv 9]
+
+# Logging
+proc color_print {msg} {
+    puts "\033\[1;34m$msg\033\[0m"
+}
+
+color_print "🔐 Configuring Remote Environment on $host..."
+
+# Construct the file content
+set env_content "APP_ENV=production\nPORT=8000\n\n# Supabase\nSUPABASE_URL=$supabase_url\nSUPABASE_KEY=$supabase_key\n\n# Intelligence\nGEMINI_API_KEY=$gemini_key\nVITE_GEMINI_KEY_POOL=$gemini_pool\nMISTRAL_API_KEY=$mistral_key\nTELEGRAM_BOT_TOKEN=$telegram_token\n\n# Connectivity\nN8N_WEBHOOK_URL=$n8n_url\nN8N_API_KEY=$n8n_key\n\n# Notion\nNOTION_TOKEN=$notion_token\n\n# Infrastructure\nVITE_HOSTINGER_API_KEY=$hostinger_key\n"
+
+# Verify we have critical data
+if {$supabase_url == "" || $gemini_key == ""} {
+    puts "\033\[1;31m⚠️  WARNING: Supabase URL or Gemini Key is missing from local configuration!\033\[0m"
+    puts "\033\[1;31mThe service might not start correctly.\033\[0m"
+}
+
+# Step 1: Write the .env file
+# We use printf to write the content safely
+spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no $host "printf '$env_content' > $remote_file"
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}
+
+color_print "✅ Environment variables written."
+
+# Step 2: Restart the Service
+color_print "🔄 Restarting Cortex..."
+spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no $host "cd /opt/aureon-cortex && docker compose -f docker-compose.prod.yml down && docker compose -f docker-compose.prod.yml up -d"
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}
+
+color_print "✨ Aureon Cortex is fully configured and restarting!"

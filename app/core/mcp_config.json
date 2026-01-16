@@ -1,0 +1,64 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": ["--no-install", "@modelcontextprotocol/server-supabase"],
+      "env": {
+        "SUPABASE_URL": "${SUPABASE_URL}",
+        "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_KEY}"
+      }
+    },
+    "notion": {
+      "command": "npx",
+      "args": ["--no-install", "@modelcontextprotocol/server-notion"],
+      "env": {
+        "NOTION_API_TOKEN": "${NOTION_TOKEN}"
+      }
+    },
+    "google-workspace": {
+      "command": "npx",
+      "args": ["--no-install", "@modelcontextprotocol/server-google-workspace"],
+      "env": {
+        "GOOGLE_CLIENT_ID": "${GOOGLE_CLIENT_ID}",
+        "GOOGLE_CLIENT_SECRET": "${GOOGLE_CLIENT_SECRET}",
+        "GOOGLE_REFRESH_TOKEN": "${GOOGLE_REFRESH_TOKEN}"
+      }
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["--no-install", "@modelcontextprotocol/server-vercel"],
+      "env": {
+        "VERCEL_API_TOKEN": "${VERCEL_API_TOKEN}"
+      }
+    },
+    "test-sprite": {
+      "command": "npx",
+      "args": ["--no-install", "@testsprite/testsprite-mcp@latest"],
+      "env": {
+        "API_KEY": "${TESTSPRITE_API_KEY}"
+      }
+    },
+    "hostinger": {
+      "command": "npx",
+      "args": ["--no-install", "hostinger-api-mcp@latest"],
+      "env": {
+        "API_TOKEN": "${HOSTINGER_API_KEY}"
+      }
+    },
+    "pinecone": {
+      "command": "npx",
+      "args": ["--no-install", "@pinecone-database/mcp"],
+      "env": {
+        "PINECONE_API_KEY": "${PINECONE_API_KEY}"
+      }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["--no-install", "@upstash/context7-mcp", "--api-key", "${CONTEXT7_API_KEY}"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["--no-install", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}

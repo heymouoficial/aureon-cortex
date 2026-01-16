@@ -1,0 +1,20 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'moshequantum@gmail.com'
+  smtp_auth_username: 'moshequantum@gmail.com'
+  smtp_auth_password: '${GMAIL_APP_PASSWORD}' # Replaced at runtime or via envsubst
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'email-notifications'
+
+receivers:
+  - name: 'email-notifications'
+    email_configs:
+      - to: 'moshequantum@gmail.com'
+        send_resolved: true
