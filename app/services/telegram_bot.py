@@ -146,6 +146,7 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Unified entry point for all non-command messages (Text, Voice, Photo, Contact, etc.)
     """
+    status_msg = None
     try:
         if not update.effective_user or not update.message:
             return
@@ -192,10 +193,9 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # User constraint: "Solo recibirás mensajes que sean comandos o que mencionen explícitamente..." via BotFather.
         # So we process everything we RECEIVE.
         
-        # Security: In a group, we should only process if the SPEAKER is whitelisted? 
         # Or if the GROUP is trusted?
         # Current Logic: Only Whitelisted USERS can interact, anywhere.
-        if not is_authorized_user:
+        if not is_authorized:
             # Silent ignore in groups to avoid spamming "Access Denied"
             return
 
