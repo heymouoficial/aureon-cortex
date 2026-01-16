@@ -15,6 +15,10 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+import os
+from groq import Groq
+
+
 
 class RoutingDecision(BaseModel):
     """Structured routing decision."""
@@ -110,6 +114,29 @@ class AureonCortex:
             
             return "🔧 Mis sistemas principales están en mantenimiento preventivo. Dame 30 segundos para recalibrar."
 
+    async def _transcribe_audio(self, file_path: str) -> str:
+        """Transcribe audio using Groq Whisper (Fast & Cheap fallback)."""
+        try:
+            if not settings.GROQ_API_KEY:
+                logger.warning("🚫 Groq API Key missing for transcription.")
+                return ""
+                
+            client = Groq(api_key=settings.GROQ_API_KEY)
+            
+            with open(file_path, "rb") as file:
+                transcription = client.audio.transcriptions.create(
+                    file=(os.path.basename(file_path), file.read()),
+                    model="whisper-large-v3",
+                    response_format="text"
+                )
+            
+            logger.info(f"👂 Audio Transcrito (Groq): {transcription[:50]}...")
+            return transcription.strip()
+            
+        except Exception as e:
+            logger.error(f"❌ Error transcribiendo audio con Groq: {e}")
+            return ""
+
     async def _universal_fallback(
         self,
         query: str,
@@ -120,16 +147,41 @@ class AureonCortex:
         🛡️ Protocolo Universal de Resiliencia
         Cadena de mando: Vox (Gemini) -> Lumina (Mistral) -> Nux (Groq) -> DeepSeek/OpenAI
         """
+        
+        # 0. Audio Rescue: If query is empty and we have audio, transcribe it first if Vox fails
+        # But Vox handles audio natively. We only need to transcribe if Vox FAILS.
+        # However, we can't easily retry Vox with transcription since it was likely a 429.
+        # So we transcribe for the NEXT agents (Lumina/Nux) who only speak text.
+        
+        audio_path = None
+        if attachments:
+            for att in attachments:
+                if att.get('type') == 'voice' and att.get('path'):
+                    audio_path = att.get('path')
+                    break
+
         # 1. Intentar con Vox (Gemini 2.0 / 1.5)
         try:
             logger.info("🎙️ Aureon: Intentando Vox (Gemini)...")
             return await self.vox.respond(query, context, attachments)
         except Exception as e:
-            logger.warning(f"⚠️ Vox falló: {e}. Activando Lumina...")
+            logger.warning(f"⚠️ Vox falló: {e}. Recuperando contexto de audio...")
+            
+            # 🚨 EMERGENCY HEARING AID
+            if audio_path and not query:
+                logger.info("🦻 Vox falló en audio. Activando Groq Whisper para transcribir...")
+                transcribed_text = await self._transcribe_audio(audio_path)
+                if transcribed_text:
+                    query = transcribed_text
+                    # Update context to reflect transcription
+                    if context is None: context = {}
+                    context['transcription_source'] = 'Groq Whisper Fallback'
+                else:
+                    logger.warning("🔕 No se pudo transcribir el audio. Lumina volará a ciegas.")
 
         # 2. Fallback a Lumina (Mistral Large) via Mistral API
         try:
-            logger.info("✨ Aureon: Vox caído. Lumina tomando el control (Mistral)...")
+            logger.info(f"✨ Aureon: Vox caído. Lumina tomando el control (Mistral)... Query: {query}")
             return await self.lumina.think(query, context)
         except Exception as e:
             logger.warning(f"⚠️ Lumina falló: {e}. Activando Nux...")
