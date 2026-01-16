@@ -4,7 +4,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Core
     APP_ENV: str = "development"
-    PORT: int = 8000
+    PORT: int = 8080
     
     # Supabase (The Memory)
     SUPABASE_URL: str
