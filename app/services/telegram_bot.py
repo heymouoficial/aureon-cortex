@@ -122,8 +122,8 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if wants_voice_response:
             try:
-                # Generate Audio using Edge-TTS (Venezuelan Spanish)
-                voice_name = "es-VE-SebastianNeural"
+                # Generate Audio using Edge-TTS (Neutral Deep Male)
+                voice_name = "es-US-AlonsoNeural"
                 communicate = edge_tts.Communicate(answer_text, voice_name)
 
                 # Use a unique name for concurrent requests

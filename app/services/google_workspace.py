@@ -131,6 +131,42 @@ class GoogleWorkspaceService:
             logger.error(f"Error listing emails: {e}")
             return f"Error al consultar Gmail: {e}"
 
+    async def search_emails(self, query: str, max_results: int = 5):
+        """Search emails using Gmail query format (e.g. 'from:andrea newer_than:1d')."""
+        service = self.get_gmail_service()
+        if not service: return "Google service not configured."
+        
+        try:
+            logger.info(f"📧 Searching emails with query: {query}")
+            results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
+            messages = results.get('messages', [])
+            
+            if not messages:
+                return []
+            
+            email_data = []
+            for msg in messages:
+                m = service.users().messages().get(userId='me', id=msg['id']).execute()
+                payload = m.get('payload', {})
+                headers = payload.get('headers', [])
+                
+                subject = next((h['value'] for h in headers if h['name'] == 'Subject'), '(No Subject)')
+                sender = next((h['value'] for h in headers if h['name'] == 'From'), '(Unknown)')
+                snippet = m.get('snippet', '')
+                
+                email_data.append({
+                    "id": msg['id'],
+                    "subject": subject,
+                    "sender": sender,
+                    "snippet": snippet,
+                    "body": snippet # Logic to get full body is complex, snippet is usually enough for tasks
+                })
+                
+            return email_data
+        except Exception as e:
+            logger.error(f"Error searching emails: {e}")
+            return []
+
     async def get_upcoming_events(self, max_results=5):
         """List upcoming calendar events."""
         service = self.get_calendar_service()

@@ -2,6 +2,8 @@ from typing import Dict, Any, List, Optional
 from loguru import logger
 from app.services.mcp_client import mcp_client
 from app.services.notion import notion_service
+from app.services.google_workspace import google_service
+import asyncio
 
 
 class Scheduler:
@@ -45,8 +47,44 @@ class Scheduler:
                 else:
                     return "⚠️ Pude conectar con Notion pero hubo un error creando la página. Verifica los permisos de integración."
 
+            # intent: SYNC GMAIL TASKS (Specific Mission)
+            elif any(kw in query_lower for kw in ["correo", "email", "gmail"]) and "andrea" in query_lower:
+                # 1. Search Emails
+                emails = await google_service.search_emails("from:Andrea newer_than:2d")
+                if not emails:
+                    return "📧 Busqué correos de 'Andrea' de las últimas 48h pero no encontré nada relevante."
+                
+                # 2. Get Notion Context
+                notion_summary = await notion_service.get_tasks_summary()
+                
+                # 3. Process & Sync
+                created_tasks = []
+                ignored_tasks = []
+                
+                # Simple logic: Subject/Snippet is the task
+                target_db = (await notion_service.list_databases())[0]["id"]
+                
+                for email in emails:
+                    candidate_task = email['subject']
+                    # De-duplication check (Naive)
+                    if candidate_task.lower() in notion_summary.lower():
+                        ignored_tasks.append(candidate_task)
+                        continue
+                        
+                    # Create Task
+                    await notion_service.create_page(target_db, f"📧 {candidate_task}")
+                    created_tasks.append(candidate_task)
+                
+                response = f"📧 **Sincronización con Andrea Completada:**\n"
+                if created_tasks:
+                    response += f"\n✅ **Nuevas Tareas Creadas:**\n" + "\n".join([f"- {t}" for t in created_tasks])
+                if ignored_tasks:
+                    response += f"\n\n👀 **Ya existían en Notion:**\n" + "\n".join([f"- {t}" for t in ignored_tasks])
+                    
+                return response
+
             else:
-                return "📅 Soy el Scheduler. Puedo leer tu agenda en Notion o crear nuevas tareas. ¿Qué necesitas?"
+                return "📅 Soy el Scheduler. Puedo leer tu agenda en Notion, crear tareas, o sincronizar correos. ¿Qué necesitas?"
             
         except Exception as e:
             logger.error(f"❌ Scheduler error: {e}")

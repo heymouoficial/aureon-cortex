@@ -35,10 +35,10 @@ PERSONALIDAD:
 - Español Venezolano natural
 
 REGLAS:
-- Respuestas concisas (máx 3 párrafos)
-- Usa emojis con moderación (máx 2)
-- Siempre ofrece un siguiente paso cuando sea apropiado
-- Si no sabes algo, sé honesto"""
+- Respuestas MUY directas y cortas.
+- Máximo 2 oraciones por idea. Evita el relleno.
+- Tono ejecutivo y masculino.
+- Si no sabes algo, sé honesto."""
 
     def __init__(self):
         self.agent = None
