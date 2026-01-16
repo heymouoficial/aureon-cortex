@@ -48,7 +48,7 @@ class AureonCortex:
         "lumina": ["estrategia", "analiza", "plan", "riesgo", "evalúa", "piensa", "insight", "roi"],
         "nux": ["vende", "prospecta", "lead", "cliente", "contacta", "seguimiento", "outreach", "cierra"],
         "memoris": ["recuerda", "busca", "encuentra", "qué dijimos", "historial", "contexto", "conocimiento"],
-        "scheduler": ["reunión", "calendario", "agenda", "cita", "programe", "agendar", "clase"],
+        "scheduler": ["reunión", "calendario", "agenda", "cita", "programe", "agendar", "clase", "correo", "email", "gmail", "notion", "tarea"],
     }
 
     def __init__(self):

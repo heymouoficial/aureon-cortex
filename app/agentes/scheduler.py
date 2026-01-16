@@ -93,12 +93,13 @@ class Scheduler:
                 else:
                     return "⚠️ Pude conectar con Notion pero hubo un error creando la página. Verifica los permisos de integración."
 
-            # intent: SYNC GMAIL TASKS (Specific Mission)
-            elif any(kw in query_lower for kw in ["correo", "email", "gmail"]) and "andrea" in query_lower:
+            # intent: SYNC GMAIL TASKS (Generic Trigger)
+            elif any(kw in query_lower for kw in ["correo", "email", "gmail"]):
+                # If "andrea" is specific, it keeps the logic, but for now let's make it general since it filters by sender internaly
                 results = await self.sync_emails()
                 
                 if not results["created"] and not results["ignored"]:
-                     return "📧 Busqué correos recientes de Andrea/Elevat pero no encontré nada nuevo."
+                     return "📧 Revisé tus correos importantes (Andrea/Elevat) y no encontré tareas nuevas."
                 
                 response = f"📧 **Sincronización con Andrea Completada:**\n"
                 if results["created"]:
