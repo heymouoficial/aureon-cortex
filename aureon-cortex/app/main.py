@@ -83,14 +83,91 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {
-        "system": "Aureon Cortex",
-        "status": "operational",
-        "version": "0.1.0-alpha",
-        "quote": "Intelligence is the ability to adapt to change."
-    }
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Aureon Cortex | Neural Hub</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@300;500&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --obsidian: #050505;
+                --lumina: #00f2ff;
+                --glass: rgba(255, 255, 255, 0.03);
+            }
+            body, html {
+                margin: 0; padding: 0; width: 100%; height: 100%;
+                background: var(--obsidian);
+                color: white;
+                font-family: 'Outfit', sans-serif;
+                display: flex; justify-content: center; align-items: center;
+                overflow: hidden;
+            }
+            .background {
+                position: absolute; width: 100%; height: 100%;
+                background: radial-gradient(circle at center, #001a1d 0%, var(--obsidian) 70%);
+                z-index: 1;
+            }
+            .blob {
+                position: absolute; width: 500px; height: 500px;
+                background: var(--lumina);
+                filter: blur(150px);
+                opacity: 0.1;
+                border-radius: 50%;
+                animation: float 20s infinite alternate;
+                z-index: 2;
+            }
+            @keyframes float {
+                from { transform: translate(-10%, -10%) scale(1); }
+                to { transform: translate(10%, 10%) scale(1.1); }
+            }
+            .content {
+                position: relative; z-index: 10;
+                text-align: center;
+                background: var(--glass);
+                backdrop-filter: blur(20px);
+                padding: 3rem;
+                border-radius: 2rem;
+                border: 1px solid rgba(0, 242, 255, 0.2);
+                box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            }
+            .status-dot {
+                width: 12px; height: 12px;
+                background: var(--lumina);
+                border-radius: 50%;
+                display: inline-block;
+                margin-right: 10px;
+                box-shadow: 0 0 15px var(--lumina);
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { opacity: 0.5; transform: scale(0.8); }
+                50% { opacity: 1; transform: scale(1.2); }
+                100% { opacity: 0.5; transform: scale(0.8); }
+            }
+            h1 { font-weight: 300; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 0.5rem; font-size: 1.2rem; color: #888; }
+            .version { font-family: 'Inter', sans-serif; font-size: 0.8rem; color: #444; margin-top: 1rem; }
+            .main-status { font-size: 2.5rem; font-weight: 600; margin: 1rem 0; background: linear-gradient(90deg, #fff, var(--lumina)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        </style>
+    </head>
+    <body>
+        <div class="background"></div>
+        <div class="blob"></div>
+        <div class="content">
+            <h1>Aureon Cortex Hub</h1>
+            <div class="main-status"><span class="status-dot"></span>Operational</div>
+            <p style="color: #666; font-style: italic;">"Intelligence is the ability to adapt to change."</p>
+            <div class="version">Agnostic Intelligence Engine v0.1.0-alpha</div>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.get("/health")
 async def health_check():
