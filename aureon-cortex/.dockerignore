@@ -1,0 +1,54 @@
+# Aureon Cortex - Docker Ignore
+# Prevents unnecessary files from being copied to the image
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Local env files (secrets injected via Dokploy)
+.env
+.env.*
+!.env.example
+
+# Tests
+tests/
+testsprite_tests/
+pytest_cache/
+.pytest_cache/
+
+# Documentation
+*.md
+!README.md
+
+# Infrastructure (not needed in image)
+infra/
+monitoring/
+scripts/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.tmp
