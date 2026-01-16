@@ -124,4 +124,4 @@ REGLAS:
                 if not self.agent:
                     break
         
-        return "🎙️ Mis neuronas necesitan un respiro. Inténtalo en un minuto."
+        raise RuntimeError("Vox: All Gemini models in the chain failed.")
