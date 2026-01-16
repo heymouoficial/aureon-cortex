@@ -21,12 +21,10 @@ class Scheduler:
         """
         # 1. Search Emails (Dual Persona: Personal & Agency)
         # Prepare query logic
+        target_senders = ["andreachimarasonlinebusiness@gmail.com", "christomoreno6@gmail.com", "elevatmarketing.com"]
+
         query = query or (
             f"from:({', '.join(target_senders)}) "
-            f"OR from:andreachimarasonlinebusiness@gmail.com "
-            f"OR from:christomoreno6@gmail.com "
-            f"OR from:\"Elevat Marketing\" "
-            f"newer_than:2d"
             f"newer_than:2d"
         )
         
