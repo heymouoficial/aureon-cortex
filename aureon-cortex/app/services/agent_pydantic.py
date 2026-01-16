@@ -37,18 +37,11 @@ def get_model(provider: str = "gemini", explicit_key: Optional[str] = None):
         if key: os.environ["GEMINI_API_KEY"] = key
         # Use simple string if specific class import fails or just standard usage
         try:
-             from pydantic_ai.models.gemini import GeminiModel
              return GeminiModel(model_name="gemini-2.0-flash-exp")
-        except ImportError:
-             # Fallback to string definition if using older pydantic-ai that supports it via string or internal logic
-             # But assume GeminiModel exists if we used it before.
-             # If not, let's use the one that was working or standard.
-             # Previous code used: GeminiModel(model_name="gemini-2.0-flash-exp")
-             # We assume GeminiModel is available in global scope or from pydantic_ai.models 
-             # (Wait, previous code imported it? No, it seemed to rely on internal resolution or previous import?)
-             # Let's import it here to be safe.
-             from pydantic_ai.models.gemini import GeminiModel
-             return GeminiModel(model_name="gemini-2.0-flash-exp")
+        except Exception as e:
+             logger.error(f"❌ GeminiModel initialization error: {e}")
+             # Return string-based model name as fallback if the class is tricky
+             return "google:gemini-2.0-flash-exp"
 
     # 2. Mistral (High IQ)
     elif provider == "mistral":
@@ -174,11 +167,23 @@ class PydanticBrainService:
         for provider in self.FALLBACK_CHAIN:
             try:
                 # Check for keys presence
-                if provider == "mistral" and not settings.MISTRAL_API_KEY: continue
-                if provider == "groq" and not settings.GROQ_API_KEY: continue
-                if provider == "openai" and not settings.OPENAI_API_KEY: continue
+                if provider == "gemini" and not (hydra_pool.get_active_key() or settings.GEMINI_API_KEY):
+                    logger.warning("⏭️ Skipping GEMINI: No API Key available.")
+                    continue
+                if provider == "mistral" and not settings.MISTRAL_API_KEY:
+                    logger.warning("⏭️ Skipping MISTRAL: No API Key available.")
+                    continue
+                if provider == "groq" and not settings.GROQ_API_KEY:
+                    logger.warning("⏭️ Skipping GROQ: No API Key available.")
+                    continue
+                if provider == "openai" and not settings.OPENAI_API_KEY:
+                    logger.warning("⏭️ Skipping OPENAI: No API Key available.")
+                    continue
+                if provider == "deepseek" and not settings.DEEPSEEK_API_KEY:
+                    logger.warning("⏭️ Skipping DEEPSEEK: No API Key available.")
+                    continue
                 
-                logger.info(f"🧠 Thinking with Provider: {provider.upper()}...")
+                logger.info(f"🧠 [AUREON] Thinking with Provider: {provider.upper()}...")
                 
                 # Special handling for Gemini Pool
                 if provider == "gemini":
