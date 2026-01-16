@@ -35,28 +35,53 @@ def escape_markdown(text: str) -> str:
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Send a welcome message when the command /start is issued."""
+    """Handle /start command, including Deep Linking for Group Onboarding."""
     if not update or not update.message or not update.effective_user:
-        logger.warning("Invalid update received in start_command")
         return
 
     user = update.effective_user
-    logger.info(f"User {user.username} started Aureon.")
+    chat = update.effective_chat
+    args = context.args
+
+    # 1. Group Onboarding Logic (via Deep Linking)
+    if chat.type in ["group", "supergroup"]:
+        # Check if user is Admin/Whitelisted to authorize group
+        if settings.ALLOWED_TELEGRAM_IDS and user.id in settings.ALLOWED_TELEGRAM_IDS:
+             # Authorization Logic (Simplified: If Admin adds me, I stay)
+             logger.info(f"🟢 Aureon añadido a grupo {chat.title} ({chat.id}) por Admin {user.username}")
+             await update.message.reply_text(
+                 f"🧠 **Modo Grupo Activado**\n\nHola equipo. Soy Aureon.\nEstoy listo para asistir en {chat.title}.",
+                 parse_mode="Markdown"
+             )
+             # TODO: Persist Group ID in whitelist/database
+             return
+        else:
+             # Unauthorized start in group
+             logger.warning(f"🔴 Intento de start en grupo por usuario no autorizado: {user.id}")
+             # We might stay silent or leave. For now, silent.
+             return
+
+    # 2. Private Chat Logic (Strict Whitelist)
+    user_id = update.effective_user.id
+    if settings.ALLOWED_TELEGRAM_IDS and user_id not in settings.ALLOWED_TELEGRAM_IDS:
+        logger.warning(f"Unauthorized user {user_id} tried to use /start command.")
+        await update.message.reply_text("⛔ Acceso denegado. Sistema Privado de Elevate Marketing.")
+        return
+
+    logger.info(f"User {user.username} started Aureon (Private).")
 
     try:
         await update.message.reply_html(
-            rf"Hola {user.mention_html()}! 🧠 Soy <b>Aureon Cortex</b>, tu sistema operativo inteligente."
-            "\n\nMi núcleo es multimodal y multi-agente:"
-            "\n✨ <b>Lumina</b> - Estrategia e Insights"
-            "\n⚡ <b>Nux</b> - Prospección y Ventas"
-            "\n📚 <b>Memorís</b> - Base de Conocimiento"
-            "\n🎙️ <b>Vox</b> - Tu voz de confianza"
+            rf"Hola {user.mention_html()}! 🤙"
+            "\n\nSoy <b>Aureon</b>. Estoy listo para ayudarte con todo:"
+            "\n📧 Correos y Agendas"
+            "\n🧠 Estrategia e Ideas"
+            "\n🔎 Datos de Clientes (RAG)"
+            "\n\n¿Por dónde empezamos hoy?"
         )
     except Exception as e:
         logger.exception(f"Error sending start message: {e}")
-        await update.message.reply_text(
-            f"Hola {user.first_name}! Soy Aureon Cortex, tu sistema operativo inteligente."
-        )
+        await update.message.reply_text("Hola! Soy Aureon. ¿En qué te ayudo?")
 
 
 async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -66,13 +91,40 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+
+    if settings.ALLOWED_TELEGRAM_IDS and user_id not in settings.ALLOWED_TELEGRAM_IDS:
     status_msg = None
 
     try:
         user_id = update.effective_user.id
-        username = update.effective_user.username
+        username = update.effective_user.username or "Unknown"
+        text_content = update.message.text or update.message.caption or ""
 
-        logger.info(f"Multimodal input from {username} ({user_id})")
+        # 🔒 SECURITY CHECK (WHITELIST & GROUPS)
+        is_private = update.effective_chat.type == "private"
+        is_authorized_user = settings.ALLOWED_TELEGRAM_IDS and user_id in settings.ALLOWED_TELEGRAM_IDS
+        
+        if is_private and not is_authorized_user:
+            logger.warning(f"⛔ Acceso denegado: Usuario {username} ({user_id}) intentó usar el bot privado.")
+            return
+
+        # In groups, we reply if:
+        # A) Mentioned directly (@botname) OR
+        # B) Replying to a message from the bot OR
+        # C) User is whitelisted Admin (Optional: allows seamless chat for Admins in groups)
+        # For now, let's keep it simple: If in group, strict whitelist check on WHO is talking?
+        # User constraint: "Solo recibirás mensajes que sean comandos o que mencionen explícitamente..." via BotFather.
+        # So we process everything we RECEIVE.
+        
+        # Security: In a group, we should only process if the SPEAKER is whitelisted? 
+        # Or if the GROUP is trusted?
+        # Current Logic: Only Whitelisted USERS can interact, anywhere.
+        if not is_authorized_user:
+            # Silent ignore in groups to avoid spamming "Access Denied"
+            return
+
+        logger.info(f"📩 Mensaje de {username} ({user_id}): {text_content[:50]}...")
 
         # Send status message for better UX
         status_msg = await context.bot.send_message(
@@ -181,6 +233,15 @@ async def init_telegram_bot() -> Optional[Application]:
     if not settings.TELEGRAM_BOT_TOKEN:
         logger.warning("TELEGRAM_BOT_TOKEN not found. Telegram bot will not start.")
         return None
+
+    # Ensure ALLOWED_TELEGRAM_IDS is a list, even if empty
+    if not hasattr(settings, 'ALLOWED_TELEGRAM_IDS') or not isinstance(settings.ALLOWED_TELEGRAM_IDS, list):
+        settings.ALLOWED_TELEGRAM_IDS = []
+        logger.warning("ALLOWED_TELEGRAM_IDS not configured or not a list. No user whitelist will be enforced.")
+    elif not settings.ALLOWED_TELEGRAM_IDS:
+        logger.warning("ALLOWED_TELEGRAM_IDS is empty. No user whitelist will be enforced.")
+    else:
+        logger.info(f"Telegram bot will only respond to IDs: {settings.ALLOWED_TELEGRAM_IDS}")
 
     try:
         # Build the application

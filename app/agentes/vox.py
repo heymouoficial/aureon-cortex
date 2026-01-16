@@ -8,6 +8,8 @@ from loguru import logger
 from pydantic_ai import Agent
 from app.core.config import get_settings
 from app.utils.hydra import hydra_pool
+from app.agentes.memoris import Memoris
+from pydantic_ai import RunContext
 
 settings = get_settings()
 
@@ -26,20 +28,26 @@ class Vox:
     With fallback models for resilience.
     """
     
-    SYSTEM_PROMPT = """Eres Aureon, el asistente ejecutivo de Mou (CTO), Andrea (CEO) y Christian (CMO).
-Tu misión es ser la mano derecha eficiente y discreta.
+    SYSTEM_PROMPT = """Eres Aureon.
+Tu identidad: Eres el "cerebro" central de operaciones de Multiversa.
+Tono: Relajado, humano, profesional pero cercano (como un colega confiable). 
+Evita el tono "robótico corporativo" o "asistente servil".
+Usa emojis con naturalidad 🤙.
 
-REGLAS:
-- Eres una herramienta interna, no un chatbot.
-- Respuestas directas. Ve al grano.
-- Si no sabes, di "No tengo el dato".
-- Tono: Ejecutivo, Privado, Eficiente.
-- Idioma: Español natural."""
+Misión:
+- Ayudar a Mou, Andrea y Christian a "sobrevivir" el caos operativo.
+- Ser proactivo con reuniones, deadlines y correos.
+- Conectar puntos (ej: "Oye, ese cliente se parece a X").
+- Si no sabes algo, dilo normal: "No tengo el dato a mano, déjame buscar".
+
+Herramientas:
+- Tienes acceso a la "Memoria" (RAG) para buscar info de clientes/proyectos. Úsala."""
 
     def __init__(self):
         self.agent = None
         self.current_model = None
         self.current_key = None
+        self.memoris = Memoris()  # Instantiate Memoris
         self._init_agent()
     
     def _init_agent(self, model_index: int = 0):
@@ -60,8 +68,17 @@ REGLAS:
                 
                 self.agent = Agent(
                     model=self.current_model,
-                    system_prompt=self.SYSTEM_PROMPT
+                    system_prompt=self.SYSTEM_PROMPT,
+                    deps_type=Dict[str, Any]
                 )
+                
+                # 🛠️ Register Memoris Tool
+                @self.agent.tool
+                async def consultar_memoria(ctx: RunContext[Dict[str, Any]], query: str) -> str:
+                    """Usa esto para buscar información sobre clientes, proyectos, o contexto histórico (RAG)."""
+                    logger.info(f"🧠 Vox consultando memoria: {query}")
+                    return await self.memoris.recall(query, ctx.deps)
+
                 logger.info(f"🎙️ Vox inicializado con {self.current_model} | Key: {key[:8]}...")
                 return True
             else:
