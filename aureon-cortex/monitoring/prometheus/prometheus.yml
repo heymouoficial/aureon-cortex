@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "aureon-cortex"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["cortex:8000"]
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
