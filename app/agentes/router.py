@@ -94,7 +94,7 @@ class AureonCortex:
                     return await self.scheduler.act(query, context)
                 case _:
                     # Vox es el default, pero tiene fallback a Lumina
-                    return await self._vox_with_fallback(query, context, attachments)
+                    return await self._universal_fallback(query, context, attachments)
                     
         except Exception as e:
             error_str = str(e)
@@ -110,34 +110,65 @@ class AureonCortex:
             
             return "🔧 Mis sistemas principales están en mantenimiento preventivo. Dame 30 segundos para recalibrar."
 
-    async def _vox_with_fallback(
+    async def _universal_fallback(
         self,
         query: str,
         context: Optional[Dict[str, Any]] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
     ) -> str:
         """
-        Vox con auto-recuperación: si falla por 429, Lumina toma el control.
-        El usuario no debe notar el fallo.
+        🛡️ Protocolo Universal de Resiliencia
+        Cadena de mando: Vox (Gemini) -> Lumina (Mistral) -> Nux (Groq) -> DeepSeek/OpenAI
         """
+        # 1. Intentar con Vox (Gemini 2.0 / 1.5)
         try:
-            logger.info("🎙️ Intentando con VOX (Gemini 2.0)...")
+            logger.info("🎙️ Aureon: Intentando Vox (Gemini)...")
             return await self.vox.respond(query, context, attachments)
-            
         except Exception as e:
-            error_str = str(e)
+            logger.warning(f"⚠️ Vox falló: {e}. Activando Lumina...")
+
+        # 2. Fallback a Lumina (Mistral Large) via Mistral API
+        try:
+            logger.info("✨ Aureon: Vox caído. Lumina tomando el control (Mistral)...")
+            return await self.lumina.think(query, context)
+        except Exception as e:
+            logger.warning(f"⚠️ Lumina falló: {e}. Activando Nux...")
+
+        # 3. Fallback a Nux (Groq LLaMA 3)
+        try:
+            logger.info("⚡ Aureon: Lumina caída. Nux tomando el control (Groq)...")
+            # Force Nux to act as chat executioner
+            nux_response = await self.nux.act(query, context)
+            return f"⚡ [Respaldo Nux] {nux_response}"
+        except Exception as e:
+            logger.warning(f"⚠️ Nux falló: {e}. Activando Núcleo de Último Recurso...")
+
+        # 4. Último Recurso: DeepSeek / OpenAI (Direct API)
+        try:
+            import httpx
+            logger.info("🥥 Aureon: Activando DeepSeek/OpenAI...")
+            api_key = settings.DEEPSEEK_API_KEY or settings.OPENAI_API_KEY
+            if not api_key:
+                raise ValueError("No DeepSeek/OpenAI key available")
             
-            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                logger.warning("🚨 VOX agotado (429). Activando LUMINA (1.5/Mistral)...")
-                try:
-                    # Lumina responde en lugar de Vox - el usuario no nota la diferencia
-                    return await self.lumina.think(query, context)
-                except Exception as lumina_error:
-                    logger.error(f"❌ Lumina también agotada: {lumina_error}")
-                    return "🚀 ¡Demasiada energía! Mis llaves de IA necesitan un respiro. Reintenta en 30s."
+            base_url = "https://api.deepseek.com/v1/chat/completions" if settings.DEEPSEEK_API_KEY else "https://api.openai.com/v1/chat/completions"
+            model = "deepseek-chat" if settings.DEEPSEEK_API_KEY else "gpt-3.5-turbo"
             
-            logger.error(f"❌ VOX fallo no-429: {e}")
-            return "🎙️ Estoy recalibrando mi voz. ¿Podrías repetir en un momento?"
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    base_url,
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": query}]
+                    },
+                    timeout=10.0
+                )
+                resp.raise_for_status()
+                return f"🥥 [Respaldo DeepSeek] {resp.json()['choices'][0]['message']['content']}"
+        except Exception as e:
+            logger.error(f"❌ FALLO TOTAL DEL SISTEMA: {e}")
+            return "🔥 Error Crítico: Todos los núcleos de IA están fuera de línea. Por favor contacta a soporte."
 
 
 # Singleton
