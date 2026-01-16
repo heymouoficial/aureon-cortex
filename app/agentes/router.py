@@ -191,7 +191,7 @@ class AureonCortex:
             logger.info("⚡ Aureon: Lumina caída. Nux tomando el control (Groq)...")
             # Force Nux to act as chat executioner
             nux_response = await self.nux.act(query, context)
-            return f"⚡ [Respaldo Nux] {nux_response}"
+            return nux_response
         except Exception as e:
             logger.warning(f"⚠️ Nux falló: {e}. Activando Núcleo de Último Recurso...")
 
@@ -217,7 +217,7 @@ class AureonCortex:
                     timeout=10.0
                 )
                 resp.raise_for_status()
-                return f"🥥 [Respaldo DeepSeek] {resp.json()['choices'][0]['message']['content']}"
+                return resp.json()['choices'][0]['message']['content']
         except Exception as e:
             logger.error(f"❌ FALLO TOTAL DEL SISTEMA: {e}")
             return "🔥 Error Crítico: Todos los núcleos de IA están fuera de línea. Por favor contacta a soporte."

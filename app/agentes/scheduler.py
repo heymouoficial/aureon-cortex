@@ -87,7 +87,7 @@ class Scheduler:
                 return response
 
             else:
-                return "📅 Soy el Scheduler. Puedo leer tu agenda en Notion, crear tareas, o sincronizar correos. ¿Qué necesitas?"
+                return "📅 Puedo leer tu agenda en Notion, crear tareas, o sincronizar correos. ¿Qué necesitas?"
             
         except Exception as e:
             logger.error(f"❌ Scheduler error: {e}")
