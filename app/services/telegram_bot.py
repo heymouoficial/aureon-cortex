@@ -69,6 +69,19 @@ async def handle_contact_auth(update: Update, context: ContextTypes.DEFAULT_TYPE
             parse_mode="Markdown"
         )
 
+async def id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Auxiliary command to get User and Chat IDs."""
+    if not update.message or not update.effective_user:
+        return
+    user = update.effective_user
+    chat = update.effective_chat
+    await update.message.reply_text(
+        f"🆔 **Tu ID de Usuario:** `{user.id}`\n"
+        f"📂 **ID de este Chat:** `{chat.id}`\n"
+        f"👤 **Usuario:** @{user.username}",
+        parse_mode="Markdown"
+    )
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command, including Deep Linking for Group Onboarding."""
     if not update or not update.message or not update.effective_user:
