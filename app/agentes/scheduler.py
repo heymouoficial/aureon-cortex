@@ -49,10 +49,13 @@ class Scheduler:
 
             # intent: SYNC GMAIL TASKS (Specific Mission)
             elif any(kw in query_lower for kw in ["correo", "email", "gmail"]) and "andrea" in query_lower:
-                # 1. Search Emails
-                emails = await google_service.search_emails("from:Andrea newer_than:2d")
+                # 1. Search Emails (Dual Persona: Personal & Agency)
+                # Queries: 'andrea.chimaras.online.business@gmail.com' OR 'Elevat Marketing'
+                query = "(from:andrea.chimaras.online.business@gmail.com OR from:\"Elevat Marketing\") newer_than:2d"
+                emails = await google_service.search_emails(query)
+                
                 if not emails:
-                    return "📧 Busqué correos de 'Andrea' de las últimas 48h pero no encontré nada relevante."
+                    return "📧 Busqué correos de 'Andrea Chimaras' o 'Elevat Marketing' (últimas 48h) pero no encontré nada nuevo."
                 
                 # 2. Get Notion Context
                 notion_summary = await notion_service.get_tasks_summary()
