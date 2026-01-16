@@ -199,6 +199,8 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Silent ignore in groups to avoid spamming "Access Denied"
             return
 
+        # Extract text content early for logging
+        text_content = update.message.text or update.message.caption or "[Media/No Text]"
         logger.info(f"📩 Mensaje de {username} ({user_id}): {text_content[:50]}...")
 
         # Send status message for better UX
