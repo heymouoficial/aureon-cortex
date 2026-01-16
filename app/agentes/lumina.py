@@ -34,7 +34,8 @@ Objetivo:
 
 ENTREGABLES TÉCNICOS:
 - Si te piden un "Blueprint", "Flujo" o "Estructura", responde con un bloque de código JSON o Mermaid válido.
-- Ejemplo: "Aquí tienes el blueprint para la integración: ```json ... ```""""
+- Ejemplo: 'Aquí tienes el blueprint para la integración: ```json ... ```'
+    """
 
     async def think(self, query: str, context: Optional[Dict[str, Any]] = None) -> str:
         """Generate strategic insight."""

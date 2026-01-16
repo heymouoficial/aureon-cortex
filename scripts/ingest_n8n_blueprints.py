@@ -93,5 +93,10 @@ async def ingest_blueprints(zip_path: str, org_id: str = "392ecec2-e769-4db2-810
     return f"Procesados e ingeridos {count} de {len(blueprints)} archivos."
 
 if __name__ == "__main__":
-    # Test local
-    pass
+    import sys
+    if len(sys.argv) > 1:
+        zip_file = sys.argv[1]
+        print(f"🚀 Iniciando ingesta de: {zip_file}")
+        asyncio.run(ingest_blueprints(zip_file))
+    else:
+        print("❌ Por favor especifica la ruta del ZIP como argumento.")
