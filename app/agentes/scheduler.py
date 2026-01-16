@@ -16,20 +16,33 @@ class Scheduler:
         """
         logger.info(f"📅 Scheduler acting on: {query}")
         
-        # For now, we will use Gemini to extract structured info and then call MCP
-        # This is a placeholder for the actual tool-calling logic which will be
-        # integrated with the brain service/vox synthesis.
-        
-        try:
-            # list existing tools to verify connection
-            tools = await mcp_client.list_tools(self.server_name)
-            if not tools:
-                return "No pude conectar con mi agenda en Notion. ¿Está configurado el token?"
-                
-            # Logic to decide which Notion tool to call based on query...
-            # For the MVP, we assume a successful handshake.
+            # Analyze intent
+            query_lower = query.lower()
             
-            return "Entendido. He registrado la reunión en tu base de datos de Notion. (Mock)"
+            # intent: LIST / READ
+            if any(kw in query_lower for kw in ["qué tengo", "revisa", "lee", "busca", "muéstrame", "agenda", "calendario"]):
+                summary = await notion_service.get_tasks_summary()
+                return f"📅 He consultado tu Notion:\n\n{summary}"
+            
+            # intent: CREATE / WRITE
+            elif any(kw in query_lower for kw in ["agendar", "crear", "nueva reunión", "tarea", "anota", "cita"]):
+                # Simple logic to find a database (MVP: takes the first one found)
+                dbs = await notion_service.list_databases()
+                if not dbs:
+                    return "❌ No encontré ninguna base de datos en Notion para guardar esto."
+                
+                target_db = dbs[0]["id"]
+                # Extract title (rudimentary)
+                title = query.replace("agendar", "").replace("crear", "").replace("tarea", "").strip() or "Nueva Tarea Aureon"
+                
+                result = await notion_service.create_page(target_db, f"📅 {title}")
+                if result:
+                    return f"✅ Entendido. He creado '**{title}**' en tu base de datos principal de Notion."
+                else:
+                    return "⚠️ Pude conectar con Notion pero hubo un error creando la página. Verifica los permisos de integración."
+
+            else:
+                return "📅 Soy el Scheduler. Puedo leer tu agenda en Notion o crear nuevas tareas. ¿Qué necesitas?"
             
         except Exception as e:
             logger.error(f"❌ Scheduler error: {e}")
