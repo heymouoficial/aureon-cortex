@@ -249,6 +249,7 @@ async def init_telegram_bot() -> Optional[Application]:
         # Build the application
         application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
         application.add_handler(CommandHandler("start", start_command))
+        application.add_handler(CommandHandler("id", id_command))
         
         # Unified handler for Text, Photo, Voice
         multimodal_filter = (
