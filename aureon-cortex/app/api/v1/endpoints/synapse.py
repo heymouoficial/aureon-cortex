@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from loguru import logger
-from app.services.brain import brain_service
+from app.services.agent_pydantic import pydantic_brain, AureonDependencies
 
 router = APIRouter()
 
@@ -20,21 +20,26 @@ async def process_synapse(request: SynapseRequest):
     """
     🧠 Neuro-Link Endpoint
     
-    Processes the request through the Aureon Brain service.
+    Processes the request through the Aureon Brain service (Agnostic/Multi-model).
     """
     logger.info(f"SYNAPSE: Stimulus received: {request.message[:50]}...")
     
+    # dependencies
+    deps = AureonDependencies(
+        organization_id=request.context.get("organizationId") if request.context else None
+    )
+
     # Process through Brain service
-    answer = await brain_service.process_query(
+    answer = await pydantic_brain.process_query(
         request.message,
-        organization_id=request.context.get("organizationId") if request.context else None,
-        context=request.context
+        dependencies=deps,
+        attachments=None # Synapse currently text only via this endpoint
     )
     
     thought_trace = [
         "Estímulo recibido y decodificado",
-        "Consulta a memoria de largo plazo (RAG) completada",
-        "Pensamiento sintetizado para el aliado comercial"
+        "Procesamiento Agnóstico (Gemini/Mistral/Groq) completado",
+        "Respuesta sintetizada para el aliado comercial"
     ]
     
     return SynapseResponse(

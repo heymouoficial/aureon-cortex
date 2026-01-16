@@ -1,57 +1,34 @@
 #!/usr/bin/expect -f
-
-set timeout 300
+set timeout 600
 set host "root@72.62.171.113"
 set password "Equidistante2085.-"
-set src_dir "./"
-set remote_dir "/opt/aureon-cortex"
 
-# Colors
-proc color_print {msg} {
-    puts "\033\[1;32m$msg\033\[0m"
-}
+# Ensure we act from project root
+cd /Users/astursadeth/multiversa-lab
 
-color_print "🧠 Aureon Cortex Auto-Deployment Initiated..."
-color_print "📡 Target: $host"
-
-# Step 1: Create directory remotely
-spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no $host "mkdir -p $remote_dir"
+# 1. Sync Code (Excluding local garbage and secrets initially)
+puts "\n📡 (1/3) Syncing Codebase to VPS..."
+spawn rsync -avz -e "ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no" --exclude ".git" --exclude "__pycache__" --exclude "venv" --exclude ".env.cortex" aureon-cortex/ $host:/opt/aureon-cortex/
 expect {
-    "password:" {
-        send "$password\r"
-        exp_continue
-    }
-    "yes/no" {
-        send "yes\r"
-        exp_continue
-    }
+    "password:" { send "$password\r"; exp_continue }
+    "yes/no" { send "yes\r"; exp_continue }
     eof
 }
 
-color_print "✅ Remote directory prepared."
-
-# Step 2: Sync Files
-spawn rsync -avz --exclude "__pycache__" --exclude ".git" --exclude ".venv" --exclude ".env" -e "ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no" $src_dir $host:$remote_dir
+# 2. Sync Secrets (Crucial .env.cortex with new keys)
+puts "\n🔐 (2/3) Syncing Secrets (.env.cortex)..."
+spawn scp -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no aureon-cortex/.env.cortex $host:/opt/aureon-cortex/.env.cortex
 expect {
-    "password:" {
-        send "$password\r"
-        exp_continue
-    }
+    "password:" { send "$password\r" }
     eof
 }
 
-color_print "✅ Files synced successfully."
-
-# Step 3: Build and Deploy
-spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no $host "cd $remote_dir && docker compose -f docker-compose.prod.yml build --no-cache && docker compose -f docker-compose.prod.yml up -d"
+# 3. Remote Build & Restart
+puts "\n🏗️  (3/3) Executing Remote Build & Restart on VPS..."
+spawn ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no $host "cd /opt/aureon-cortex/infra && docker compose down && docker compose -f docker-compose.prod.yml up -d --build --force-recreate && docker ps | grep aureon"
 expect {
-    "password:" {
-        send "$password\r"
-        exp_continue
-    }
+    "password:" { send "$password\r" }
     eof
 }
 
-color_print "🚀 Cortex Deployed & Running!"
-color_print "⚠️  IMPORTANT: Please SSH in and configure .env.cortex with your real keys if you haven't yet!"
-color_print "   Command: ssh $host"
+puts "\n✅ DEPLOYMENT COMPLETE! Aureon should be online."

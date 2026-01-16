@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* 1. Typography Imports */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+/* 2. Theme Configuration (Tailwind v4) */
+@theme {
+  /* Fonts */
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+
+  /* Colors: Obsidian & Lumina */
+  --color-obsidian: #0d0d0d;
+  --color-obsidian-dim: #1a1b1e;
+  --color-lumina: #00ff33;
+  --color-lumina-dim: #00cc29;
+
+  /* Gradients */
+  --image-gradient-lumina: linear-gradient(135deg, #00ff33 0%, #00bcff 100%);
+  --image-gradient-obsidian: linear-gradient(180deg, #1a1b1e 0%, #0d0d0d 100%);
+  --image-gradient-glass: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+
+  /* Animations */
+  --animate-blob: float 20s infinite ease-in-out;
+  --animate-liquid: liquid 15s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+  }
+
+  @keyframes liquid {
+    0%,
+    100% {
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+    50% {
+      border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    }
+  }
+}
+
+/* 3. Base Styles */
+@layer base {
+  body {
+    @apply bg-obsidian text-white font-body antialiased selection:bg-lumina selection:text-obsidian;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* 4. Utilities (LiquidGlass Aesthetic) */
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg;
+  }
+
+  .glass-panel-hover {
+    @apply hover:border-lumina/50 hover:shadow-[0_0_20px_rgba(0,255,51,0.2)] transition-all duration-300;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px rgba(0, 255, 51, 0.5);
+  }
+
+  .border-retro {
+    @apply border border-white/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)];
+  }
+}
+
+.bg-noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}

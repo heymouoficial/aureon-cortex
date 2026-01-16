@@ -14,19 +14,6 @@ from app.core.identity import aureon_identity
 from app.core.schemas import ThinkingPlan, StrategicPlanStep, MemoryDomain, StrategicMemory
 from app.services.mcp_client import mcp_client
 
-@aureon_agent.tool
-async def execute_mcp_tool(ctx: RunContext[AureonDependencies], server_name: str, tool_name: str, arguments: Dict[str, Any]) -> str:
-    """
-    Executes a tool on an external MCP server (Supabase, Notion, Google Workspace, Vercel).
-    
-    Args:
-        server_name: One of ['supabase', 'notion', 'google-workspace', 'vercel']
-        tool_name: The specific tool to call (e.g., 'query_db', 'create_page', 'send_email')
-        arguments: Dictionary of arguments required by the tool.
-    """
-    logger.info(f"🔌 MCP Call: {server_name}/{tool_name} with {arguments}")
-    result = await mcp_client.call_tool(server_name, tool_name, arguments)
-    return json.dumps(result, indent=2)
 
 settings = get_settings()
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
@@ -114,6 +101,21 @@ aureon_agent = Agent(
 )
 
 # ... (Tools definition remains unchanged) ...
+
+@aureon_agent.tool
+async def execute_mcp_tool(ctx: RunContext[AureonDependencies], server_name: str, tool_name: str, arguments: Dict[str, Any]) -> str:
+    """
+    Executes a tool on an external MCP server (Supabase, Notion, Google Workspace, Vercel).
+    
+    Args:
+        server_name: One of ['supabase', 'notion', 'google-workspace', 'vercel']
+        tool_name: The specific tool to call (e.g., 'query_db', 'create_page', 'send_email')
+        arguments: Dictionary of arguments required by the tool.
+    """
+    logger.info(f"🔌 MCP Call: {server_name}/{tool_name} with {arguments}")
+    result = await mcp_client.call_tool(server_name, tool_name, arguments)
+    return json.dumps(result, indent=2)
+
 
 async def transcribe_audio_groq(audio_data: bytes) -> str:
     """Transcribes audio using Groq Whisper-large-v3."""
@@ -234,8 +236,4 @@ class PydanticBrainService:
         return self.FALLBACK_MESSAGE
 
 pydantic_brain = PydanticBrainService()
-
-
-pydantic_brain = PydanticBrainService()
-
 
