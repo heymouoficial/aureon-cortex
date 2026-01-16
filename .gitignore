@@ -1,0 +1,39 @@
+# Multiversa Lab - Dependencies & Build
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Secrets & Environment (CRITICAL)
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.aureon
+**/credentials.json
+**/aureon-google-creds.json
+**/*-service-account*.json
+
+# IDE & System
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Testing
+coverage/
+.pytest_cache/
+htmlcov/
+
+# Local scripts (VPS-specific)
+*.exp
