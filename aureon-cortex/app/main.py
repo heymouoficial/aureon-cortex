@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, HTMLResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from loguru import logger
 import os
+import json
 from fastapi import Request
 
 from app.services.telegram_bot import init_telegram_bot, set_telegram_webhook, process_webhook_update, stop_telegram_bot
@@ -17,6 +18,16 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("🧠 Aureon Cortex is awakening...")
+    
+    # Diagnostic: Check API Keys
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    key_pool = os.getenv("VITE_GEMINI_KEY_POOL", "[]")
+    try:
+        pool_count = len(json.loads(key_pool))
+    except:
+        pool_count = 0
+    
+    logger.info(f"🔑 API Status: Primary Key: {'PRESENT' if gemini_key else 'MISSING'} | Pool Keys: {pool_count}")
     
     # Initialize Telegram Bot
     bot_app = await init_telegram_bot()
@@ -82,8 +93,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-from fastapi.responses import HTMLResponse
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
