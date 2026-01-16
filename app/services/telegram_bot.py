@@ -233,11 +233,13 @@ async def init_telegram_bot() -> Optional[Application]:
         logger.warning("TELEGRAM_BOT_TOKEN not found. Telegram bot will not start.")
         return None
 
-    # Ensure ALLOWED_TELEGRAM_IDS is a list, even if empty
-    if not hasattr(settings, 'ALLOWED_TELEGRAM_IDS') or not isinstance(settings.ALLOWED_TELEGRAM_IDS, list):
-        settings.ALLOWED_TELEGRAM_IDS = []
-        logger.warning("ALLOWED_TELEGRAM_IDS not configured or not a list. No user whitelist will be enforced.")
-    elif not settings.ALLOWED_TELEGRAM_IDS:
+    # Ensure ALLOWED_TELEGRAM_IDS is treated safely
+    allowed_ids = getattr(settings, 'ALLOWED_TELEGRAM_IDS', [])
+    if not isinstance(allowed_ids, list):
+        allowed_ids = []
+        logger.warning("ALLOWED_TELEGRAM_IDS configured incorrectly. Defaulting to empty whitelist.")
+    
+    if not allowed_ids:
         logger.warning("ALLOWED_TELEGRAM_IDS is empty. No user whitelist will be enforced.")
     else:
         logger.info(f"Telegram bot will only respond to IDs: {settings.ALLOWED_TELEGRAM_IDS}")
