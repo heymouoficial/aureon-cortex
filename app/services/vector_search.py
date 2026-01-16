@@ -70,4 +70,22 @@ class VectorSearchService:
             logger.error(f"❌ Error in vector search: {e}")
             return []
 
+    async def store_document(self, content: str, metadata: Dict[str, Any], organization_id: str) -> bool:
+        """Store a document chunk with embedding."""
+        try:
+            embedding = await self.get_embedding(content)
+            
+            data = {
+                "organization_id": organization_id,
+                "content": content,
+                "metadata": metadata,
+                "embedding": embedding
+            }
+            
+            self.supabase.table("document_chunks").insert(data).execute()
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error storing document: {e}")
+            return False
+
 vector_search_service = VectorSearchService()
