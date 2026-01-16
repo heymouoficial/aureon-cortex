@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     MISTRAL_API_KEY: str | None = None
     GROQ_API_KEY: str | None = None
     TELEGRAM_BOT_TOKEN: str | None = None
+    ALLOWED_TELEGRAM_IDS: list[int] = [851917065] # Mou (CTO). Add others here.
+    ALLOWED_PHONE_NUMBERS: list[str] = [] # Whitelist by phone (e.g., ["+58412...", "+34..."])
     
     # WhatsApp
     WHATSAPP_VERIFY_TOKEN: str = "Aureon_Secret_2026"

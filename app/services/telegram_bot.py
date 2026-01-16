@@ -33,6 +33,41 @@ def escape_markdown(text: str) -> str:
     """
     return text
 
+# Global runtime whitelist for phone-verified users (lost on restart)
+RUNTIME_WHITELIST = set()
+
+async def handle_contact_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles contact sharing for authentication."""
+    contact = update.message.contact
+    user_id = update.effective_user.id
+    
+    # Normalized phone check (remove spaces/dashes)
+    user_phone = contact.phone_number.replace("+", "").replace(" ", "").strip()
+    
+    # Get allowed phones from settings
+    allowed_phones = getattr(settings, 'ALLOWED_PHONE_NUMBERS', [])
+    # Normalize settings phones
+    allowed_phones_norm = [p.replace("+", "").replace(" ", "").strip() for p in allowed_phones]
+    
+    if user_phone in allowed_phones_norm:
+        RUNTIME_WHITELIST.add(user_id)
+        logger.info(f"✅ Auth Success: User {user_id} verified via phone {user_phone}")
+        
+        await update.message.reply_text(
+            f"✅ **Identidad Verificada**\n\n"
+            f"Bienvenid@. Tu ID ({user_id}) ha sido autorizado para esta sesión.\n"
+            f"Pide al administrador que agregue tu ID permanentemente.",
+            reply_markup=ReplyKeyboardRemove(),
+            parse_mode="Markdown"
+        )
+    else:
+        logger.warning(f"⛔ Auth Failed: Phone {user_phone} not in whitelist.")
+        await update.message.reply_text(
+            "❌ **Número no autorizado**\n"
+            "Tu número de teléfono no coincide con nuestros registros de personal autorizado.",
+            reply_markup=ReplyKeyboardRemove(),
+            parse_mode="Markdown"
+        )
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command, including Deep Linking for Group Onboarding."""
@@ -63,9 +98,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 2. Private Chat Logic (Strict Whitelist)
     user_id = update.effective_user.id
-    if settings.ALLOWED_TELEGRAM_IDS and user_id not in settings.ALLOWED_TELEGRAM_IDS:
+    allowed_ids = getattr(settings, 'ALLOWED_TELEGRAM_IDS', [])
+    if allowed_ids and user_id not in allowed_ids and user_id not in RUNTIME_WHITELIST:
         logger.warning(f"Unauthorized user {user_id} tried to use /start command.")
-        await update.message.reply_text("⛔ Acceso denegado. Sistema Privado de Elevate Marketing.")
+        # Trigger the auth prompt
+        keyboard = KeyboardButton(text="📱 Validar mi número", request_contact=True)
+        reply_markup = ReplyKeyboardMarkup([[keyboard]], one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(
+            f"👋 Hola {user.first_name}. Soy Aureon.\n\n"
+            "🔒 **Sistema de Seguridad Activo**\n"
+            "Necesito verificar tu identidad para procesar solicitudes.",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
         return
 
     logger.info(f"User {user.username} started Aureon (Private).")
@@ -85,28 +130,45 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle incoming text, voice, and image messages with improved UX."""
-    if not update or not update.message or not update.effective_user:
-        logger.warning("Invalid update received in handle_multimodal")
-        return
-
-    chat_id = update.effective_chat.id
-    user_id = update.effective_user.id
-
-    status_msg = None
-
+    """
+    Unified entry point for all non-command messages (Text, Voice, Photo, Contact, etc.)
+    """
     try:
+        if not update.effective_user or not update.message:
+            return
+
         user_id = update.effective_user.id
         username = update.effective_user.username or "Unknown"
-        text_content = update.message.text or update.message.caption or ""
-
+        
         # 🔒 SECURITY CHECK (WHITELIST & GROUPS)
         is_private = update.effective_chat.type == "private"
-        allowed_ids = getattr(settings, 'ALLOWED_TELEGRAM_IDS', [])
-        is_authorized_user = allowed_ids and user_id in allowed_ids
         
-        if is_private and not is_authorized_user:
-            logger.warning(f"⛔ Acceso denegado: Usuario {username} ({user_id}) intentó usar el bot privado.")
+        # Check explicit config ID OR runtime whitelist
+        allowed_ids = getattr(settings, 'ALLOWED_TELEGRAM_IDS', [])
+        is_authorized = (
+            (allowed_ids and user_id in allowed_ids) or 
+            (user_id in RUNTIME_WHITELIST)
+        )
+        
+        if is_private and not is_authorized:
+            # Check if this is a contact sharing attempt
+            if update.message.contact:
+                await handle_contact_auth(update, context)
+                return
+
+            # If not sharing contact, prompt for it
+            logger.warning(f"⛔ Denied: {username} ({user_id})")
+            
+            keyboard = KeyboardButton(text="📱 Validar mi número", request_contact=True)
+            reply_markup = ReplyKeyboardMarkup([[keyboard]], one_time_keyboard=True, resize_keyboard=True)
+            
+            await update.message.reply_text(
+                "⛔ **Acceso Restringido**\n\n"
+                "Tu ID no está en la lista de permitidos.\n"
+                "Para obtener acceso temporal, por favor valida tu número de teléfono tocando el botón de abajo.",
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
             return
 
         # In groups, we reply if:
@@ -251,9 +313,9 @@ async def init_telegram_bot() -> Optional[Application]:
         application.add_handler(CommandHandler("start", start_command))
         application.add_handler(CommandHandler("id", id_command))
         
-        # Unified handler for Text, Photo, Voice
+        # Unified handler for Text, Photo, Voice, CONTACT
         multimodal_filter = (
-            filters.TEXT | filters.PHOTO | filters.VOICE | filters.CAPTION
+            filters.TEXT | filters.PHOTO | filters.VOICE | filters.CAPTION | filters.CONTACT
         )
         application.add_handler(
             MessageHandler(multimodal_filter & (~filters.COMMAND), handle_multimodal)
