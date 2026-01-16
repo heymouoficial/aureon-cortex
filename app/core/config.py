@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str | None = None
     TELEGRAM_BOT_TOKEN: str | None = None
     ALLOWED_TELEGRAM_IDS: list[int] = [851917065] # Mou (CTO). Add others here.
-    ALLOWED_PHONE_NUMBERS: list[str] = [] # Whitelist by phone (e.g., ["+58412...", "+34..."])
+    ALLOWED_PHONE_NUMBERS: list[str] = ["+573204770682", "+17867251511"] # Christian, Andrea
     
     # WhatsApp
     WHATSAPP_VERIFY_TOKEN: str = "Aureon_Secret_2026"
