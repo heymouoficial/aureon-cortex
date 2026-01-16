@@ -1,63 +1,82 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import Dashboard from './components/Dashboard';
 import { DashboardModule } from './components/DashboardModule';
 import { AureonWidget } from './components/AureonWidget';
 import { ChatPanel } from './components/ChatPanel';
+import Header from './components/Header';
+import { UserProfile, ViewState, Task, Lead, NotionPage, Client, CalendarEvent } from './types';
+
+// MOCK DATA (To be replaced by Supabase/Notion hooks later)
+const MOCK_USER: UserProfile = {
+  id: 'astursadeth',
+  name: 'Moshé Quantum',
+  role: 'Founder & Architect',
+  avatar: 'MQ',
+  theme: '#00ff33',
+  organizationId: 'MULTIVERSA'
+};
 
 function App() {
-  const [active, setActive] = useState("overview");
+  const [currentView, setCurrentView] = useState<ViewState>('home');
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // Unified State (Centralized for Stich Architecture)
+  const tasks: Task[] = [];
+  const leads: Lead[] = [];
+  const notionDocs: NotionPage[] = [];
+  const events: CalendarEvent[] = [];
+  const clients: Client[] = [];
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'home':
+        return (
+          <Dashboard 
+            user={MOCK_USER}
+            tasks={tasks}
+            leads={leads}
+            notionDocs={notionDocs}
+            events={events}
+            clients={clients}
+            onNavigate={(view) => setCurrentView(view)}
+          />
+        );
+      default:
+        return (
+          <DashboardModule 
+            type={currentView as string} 
+            user={MOCK_USER}
+            data={{
+              tasks,
+              leads,
+              notionDocs,
+              events,
+              clients
+            }}
+          />
+        );
+    }
+  };
+
   return (
-    <div className="min-h-screen relative overflow-hidden font-body">
-      {/* Background Noise & Gradient */}
-      <div className="bg-noise" />
-      <div className="fixed inset-0 bg-gradient-to-b from-obsidian-dim to-obsidian -z-20" />
+    <div className="min-h-screen relative overflow-x-hidden bg-obsidian text-white font-body selection:bg-lumina/30">
+      {/* Background Noise & Particles */}
+      <div className="bg-noise fixed inset-0 z-0 opacity-10" />
+      <div className="fixed inset-0 bg-gradient-to-b from-obsidian-dim/50 to-obsidian -z-10" />
       
-      {/* Main Container */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4">
+      {/* Dynamic Background Blobs */}
+      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-lumina/5 rounded-full blur-[120px] animate-blob" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] animate-blob delay-700" />
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Header user={MOCK_USER} activeView={currentView} />
         
-        {/* Logo / Title */}
-        <div className="mb-12 relative group cursor-default">
-          <div className="absolute -inset-4 bg-lumina/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 animate-pulse"></div>
-          <h1 className="text-6xl md:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 relative z-10">
-            Elevat<span className="text-lumina text-glow">OS</span>
-          </h1>
-          <p className="mt-4 text-xl text-white/50 tracking-widest uppercase font-light">
-            Business Operating System
-          </p>
-        </div>
+        <main className="flex-1 w-full pt-24 pb-32">
+          {renderView()}
+        </main>
 
-        {/* Modules Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mb-8">
-          {['Overview', 'Intelligence', 'Data', 'Integrations'].map((module) => (
-            <button
-              key={module}
-              onClick={() => setActive(module.toLowerCase())}
-              className={`glass-panel p-8 rounded-2xl text-left transition-all duration-300 group ${
-                active === module.toLowerCase() 
-                ? 'border-lumina/50 shadow-[0_0_30px_rgba(0,255,51,0.15)] bg-white/10' 
-                : 'hover:bg-white/10 hover:border-white/20'
-              }`}
-            >
-              <h3 className={`text-2xl font-display font-medium mb-2 group-hover:text-lumina transition-colors ${
-                active === module.toLowerCase() ? 'text-lumina' : 'text-white'
-              }`}>
-                {module}
-              </h3>
-              <p className="text-sm text-white/40 group-hover:text-white/70 transition-colors">
-                Access your {module.toLowerCase()} workspace.
-              </p>
-            </button>
-          ))}
-        </div>
-
-        {/* Dynamic Dashboard Module */}
-        {active && <DashboardModule type={active} />}
-
-        {/* Aureon Widget & Chat Panel */}
         <AureonWidget onOpenChat={() => setIsChatOpen(true)} />
         <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-
       </div>
     </div>
   );

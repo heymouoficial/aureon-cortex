@@ -6,7 +6,7 @@ from loguru import logger
 # Add the parent directory to path so we can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.telegram_bot import start_telegram_bot
+from app.services.telegram_bot import init_telegram_bot
 from app.core.config import get_settings
 
 
@@ -41,7 +41,11 @@ async def test_telegram_bot():
 
         # Start the bot
         logger.info("🚀 Starting Telegram bot...")
-        application = await start_telegram_bot()
+        application = await init_telegram_bot()
+        if application:
+            await application.start()
+            # In long polling mode (local test), we usually need to start polling
+            # but for a simple "init" test, just starting the app is enough.
 
         if application:
             logger.success("✅ Telegram bot started successfully!")

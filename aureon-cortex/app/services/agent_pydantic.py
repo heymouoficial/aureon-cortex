@@ -13,6 +13,11 @@ import json
 from app.core.identity import aureon_identity
 from app.core.schemas import ThinkingPlan, StrategicPlanStep, MemoryDomain, StrategicMemory
 from app.services.mcp_client import mcp_client
+from app.services.vector_search import vector_search_service
+from app.services.notion import notion_service
+from app.services.infrastructure import infrastructure_service
+from app.services.n8n import n8n_service
+from app.services.google_workspace import google_service
 
 
 settings = get_settings()
@@ -102,13 +107,87 @@ async def execute_mcp_tool(ctx: RunContext[AureonDependencies], server_name: str
     Executes a tool on an external MCP server (Supabase, Notion, Google Workspace, Vercel).
     
     Args:
-        server_name: One of ['supabase', 'notion', 'google-workspace', 'vercel']
+        server_name: One of ['supabase', 'notion', 'google-workspace', 'vercel', 'hostinger', 'pinecone', 'context7', 'test-sprite']
         tool_name: The specific tool to call (e.g., 'query_db', 'create_page', 'send_email')
         arguments: Dictionary of arguments required by the tool.
     """
     logger.info(f"🔌 MCP Call: {server_name}/{tool_name} with {arguments}")
     result = await mcp_client.call_tool(server_name, tool_name, arguments)
     return json.dumps(result, indent=2)
+
+
+@aureon_agent.tool
+async def search_knowledge_base(ctx: RunContext[AureonDependencies], query: str) -> str:
+    """
+    Searches the internal knowledge base (RAG) for information about the agency, processes, or project data.
+    Use this when the user asks questions about 'how we do things' or specific agency information.
+    """
+    org_id = ctx.deps.organization_id or "392ecec2-e769-4db2-810f-ccd5bd09d92a" # Default org
+    logger.info(f"🔎 RAG Search: {query} for org {org_id}")
+    results = await vector_search_service.search(query, org_id)
+    if not results:
+        return "No se encontró información relevante en la base de conocimiento."
+    
+    formatted = "RESULTADOS DE LA BASE DE CONOCIMIENTO:\n"
+    for r in results:
+        formatted += f"- {r.get('content')}\n"
+    return formatted
+
+
+@aureon_agent.tool
+async def manage_notion(ctx: RunContext[AureonDependencies], action: str, title: str, content: Optional[str] = None) -> str:
+    """
+    Manages Notion tasks and pages. 
+    Actions: 'create_task', 'search', 'list_databases'.
+    """
+    if action == "create_task":
+        dbs = await notion_service.list_databases()
+        if not dbs: return "Error: No se encontraron bases de datos en Notion."
+        # Use first DB for now
+        res = await notion_service.create_page(dbs[0]["id"], title, content)
+        return f"✅ Tarea creada con éxito: {title}" if res else "❌ Error al crear página en Notion."
+    
+    elif action == "search":
+        res = await notion_service.search(title)
+        return json.dumps(res, indent=2)
+        
+    elif action == "list_databases":
+        return await notion_service.get_tasks_summary()
+        
+    return "Acción no reconocida."
+
+
+@aureon_agent.tool
+async def execute_automation(ctx: RunContext[AureonDependencies], flow_name: str, payload: Dict[str, Any]) -> str:
+    """
+    Triggers an n8n automation workflow.
+    Use this for: 'send_whatsapp', 'send_email', 'process_lead', 'generate_report'.
+    """
+    logger.info(f"🤖 Triggering Flow: {flow_name}")
+    res = await n8n_service.trigger_webhook(flow_name, payload)
+    return json.dumps(res, indent=2)
+
+
+@aureon_agent.tool
+async def check_infrastructure(ctx: RunContext[AureonDependencies]) -> str:
+    """
+    Checks the status of the agency infrastructure (VPS in Hostinger).
+    """
+    res = await infrastructure_service.get_vps_status()
+    return f"ESTADO INFRAESTRUCTURA: {res.get('status').upper()} | CPU: {res.get('cpu')}% | RAM: {res.get('ram')}% | Label: {res.get('label')}"
+
+
+@aureon_agent.tool
+async def manage_google_workspace(ctx: RunContext[AureonDependencies], service: str, action: str) -> str:
+    """
+    Interacts with Google Workspace (Gmail, Calendar).
+    Services: 'gmail', 'calendar'. Actions: 'list_recent', 'upcoming_events'.
+    """
+    if service == "gmail" and action == "list_recent":
+        return await google_service.list_recent_emails()
+    elif service == "calendar" and action == "upcoming_events":
+        return await google_service.get_upcoming_events()
+    return "Servicio o acción no soportada."
 
 
 async def transcribe_audio_groq(audio_data: bytes) -> str:

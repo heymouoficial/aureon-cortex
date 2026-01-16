@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
-// Pointing to VPS IP directly as per deployment
-const CORTEX_URL = import.meta.env.VITE_CORTEX_URL || 'http://72.62.171.113:8000';
+// Pointing to the production domain
+const CORTEX_URL = import.meta.env.VITE_CORTEX_URL || 'https://cortex.elevatmarketing.com';
 
 export interface SynapseResponse {
   answer: string;

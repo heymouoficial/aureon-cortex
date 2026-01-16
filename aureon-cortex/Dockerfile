@@ -1,5 +1,5 @@
 # 🧠 Aureon Cortex - Dockerfile
-# Optimized for VPS Deployment (Hostinger/DigitalOcean)
+# Optimized for Dokploy/Traefik Deployment
 
 FROM python:3.11-slim as builder
 
@@ -19,7 +19,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (curl for healthcheck, nodejs/npm for MCP, git for some mcp installs)
+# Install runtime dependencies (curl for healthcheck, nodejs/npm for MCP)
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
@@ -40,15 +40,14 @@ COPY . .
 
 # Environment Defaults
 ENV PYTHONPATH=/app
-ENV PORT=8000
-ENV MODULE_NAME="app.main"
+ENV PORT=80
 
-# Expose port
-EXPOSE 8000
+# Expose port 80 for Dokploy/Traefik
+EXPOSE 80
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Healthcheck on port 80
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:80/health || exit 1
 
-# Run Application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Run Application - CRITICAL: 0.0.0.0 binding for container accessibility
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--proxy-headers", "--forwarded-allow-ips", "*"]
