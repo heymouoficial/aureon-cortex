@@ -102,7 +102,8 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 🔒 SECURITY CHECK (WHITELIST & GROUPS)
         is_private = update.effective_chat.type == "private"
-        is_authorized_user = settings.ALLOWED_TELEGRAM_IDS and user_id in settings.ALLOWED_TELEGRAM_IDS
+        allowed_ids = getattr(settings, 'ALLOWED_TELEGRAM_IDS', [])
+        is_authorized_user = allowed_ids and user_id in allowed_ids
         
         if is_private and not is_authorized_user:
             logger.warning(f"⛔ Acceso denegado: Usuario {username} ({user_id}) intentó usar el bot privado.")
@@ -242,7 +243,7 @@ async def init_telegram_bot() -> Optional[Application]:
     if not allowed_ids:
         logger.warning("ALLOWED_TELEGRAM_IDS is empty. No user whitelist will be enforced.")
     else:
-        logger.info(f"Telegram bot will only respond to IDs: {settings.ALLOWED_TELEGRAM_IDS}")
+        logger.info(f"Telegram bot will only respond to IDs: {allowed_ids}")
 
     try:
         # Build the application
