@@ -55,7 +55,10 @@ REGLAS:
         try:
             key = hydra_pool.get_active_key() or settings.GEMINI_API_KEY
             if key:
+                # Set both to ensure compatibility across different libraries
                 os.environ["GEMINI_API_KEY"] = key
+                os.environ["GOOGLE_API_KEY"] = key
+                
                 self.current_key = key
                 self.current_model = MODEL_CHAIN[model_index]
                 
@@ -63,7 +66,7 @@ REGLAS:
                     model=self.current_model,
                     system_prompt=self.SYSTEM_PROMPT
                 )
-                logger.info(f"🎙️ Vox inicializado con {self.current_model}")
+                logger.info(f"🎙️ Vox inicializado con {self.current_model} | Key: {key[:8]}...")
                 return True
             else:
                 logger.warning("⚠️ No Gemini key available for Vox")
