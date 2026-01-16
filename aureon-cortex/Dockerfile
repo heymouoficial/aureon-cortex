@@ -1,14 +1,13 @@
 # 🧠 Aureon Cortex - Dockerfile
-# Optimized for Dokploy Deployment
+# Optimized for VPS Deployment (Hostinger/DigitalOcean)
 
 FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install system dependencies (gcc needed for some python packages, curl for healthcheck)
+# Install system dependencies (gcc needed for some python packages)
 RUN apt-get update && apt-get install -y \
     gcc \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -19,9 +18,6 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 FROM python:3.11-slim
 
 WORKDIR /app
-
-# Install curl for healthcheck in runtime stage
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
@@ -38,7 +34,7 @@ ENV MODULE_NAME="app.main"
 EXPOSE 8000
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run Application
