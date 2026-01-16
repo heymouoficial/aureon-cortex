@@ -71,11 +71,22 @@ class Scheduler:
             # Analyze intent
             query_lower = query.lower()
             
-            # intent: LIST / READ
-            if any(kw in query_lower for kw in ["qué tengo", "revisa", "lee", "busca", "muéstrame", "agenda", "calendario"]):
-                summary = await notion_service.get_tasks_summary()
-                return f"📅 He consultado tu Notion:\n\n{summary}"
-            
+            # intent: SYNC GMAIL TASKS (Generic Trigger)
+            if any(kw in query_lower for kw in ["correo", "email", "gmail"]):
+                # If "andrea" is specific, it keeps the logic, but for now let's make it general since it filters by sender internaly
+                results = await self.sync_emails()
+                
+                if not results["created"] and not results["ignored"]:
+                     return "📧 Revisé tus correos importantes (Andrea/Elevat) y no encontré tareas nuevas."
+                
+                response = f"📧 **Sincronización con Andrea Completada:**\n"
+                if results["created"]:
+                    response += f"\n✅ **Nuevas Tareas Creadas:**\n" + "\n".join([f"- {t}" for t in results["created"]])
+                if results["ignored"]:
+                    response += f"\n\n👀 **Ya existían en Notion:**\n" + "\n".join([f"- {t}" for t in results["ignored"]])
+                    
+                return response
+
             # intent: CREATE / WRITE
             elif any(kw in query_lower for kw in ["agendar", "crear", "nueva reunión", "tarea", "anota", "cita"]):
                 # Simple logic to find a database (MVP: takes the first one found)
@@ -92,22 +103,11 @@ class Scheduler:
                     return f"✅ Entendido. He creado '**{title}**' en tu base de datos principal de Notion."
                 else:
                     return "⚠️ Pude conectar con Notion pero hubo un error creando la página. Verifica los permisos de integración."
-
-            # intent: SYNC GMAIL TASKS (Generic Trigger)
-            elif any(kw in query_lower for kw in ["correo", "email", "gmail"]):
-                # If "andrea" is specific, it keeps the logic, but for now let's make it general since it filters by sender internaly
-                results = await self.sync_emails()
-                
-                if not results["created"] and not results["ignored"]:
-                     return "📧 Revisé tus correos importantes (Andrea/Elevat) y no encontré tareas nuevas."
-                
-                response = f"📧 **Sincronización con Andrea Completada:**\n"
-                if results["created"]:
-                    response += f"\n✅ **Nuevas Tareas Creadas:**\n" + "\n".join([f"- {t}" for t in results["created"]])
-                if results["ignored"]:
-                    response += f"\n\n👀 **Ya existían en Notion:**\n" + "\n".join([f"- {t}" for t in results["ignored"]])
-                    
-                return response
+            
+            # intent: LIST / READ
+            elif any(kw in query_lower for kw in ["qué tengo", "revisa", "lee", "busca", "muéstrame", "agenda", "calendario"]):
+                summary = await notion_service.get_tasks_summary()
+                return f"📅 He consultado tu Notion:\n\n{summary}"
 
             else:
                 return "📅 Puedo leer tu agenda en Notion, crear tareas, o sincronizar correos. ¿Qué necesitas?"
