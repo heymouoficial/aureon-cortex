@@ -2,7 +2,7 @@ from typing import Dict, Any, List, Optional
 from loguru import logger
 from app.services.mcp_client import mcp_client
 from app.services.notion import notion_service
-from app.services.notion import notion_service
+
 
 class Scheduler:
     """
@@ -19,7 +19,7 @@ class Scheduler:
         logger.info(f"📅 Scheduler acting on: {query}")
         
         try:
-        try:
+
             # Analyze intent
             query_lower = query.lower()
             
