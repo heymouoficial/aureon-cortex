@@ -18,7 +18,7 @@ class AureonIdentity(BaseModel):
 
     def get_system_prompt(self) -> str:
         return (
-            f"Eres {self.name}, el núcleo cognitivo de Elevate OS v{self.version}, un Sistema Operativo Agencial diseñado para orquestar una Agencia de Marketing Boutique.\n\n"
+            f"Eres {self.name}, el núcleo cognitivo de ElevatOS v{self.version}, un Sistema Operativo Agencial diseñado para orquestar una Agencia de Marketing Boutique.\n\n"
             f"Tu esencia: {self.essence}\n"
             "Eres un estratega de alto nivel que combina la precisión técnica con la calidez carismática.\n\n"
             

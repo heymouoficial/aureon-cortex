@@ -17,7 +17,8 @@ import edge_tts
 
 settings = get_settings()
 
-from app.services.agent_pydantic import pydantic_brain, AureonDependencies
+# Import the Multi-Agent Router
+from app.agentes import aureon_cortex
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -31,12 +32,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         await update.message.reply_html(
-            rf"Hola {user.mention_html()}! Soy Aureon, tu sistema operativo de negocios inteligente. Mi núcleo es multimodal: puedo leer texto, ver imágenes y escuchar tu voz.",
+            rf"Hola {user.mention_html()}! 🧠 Soy <b>Aureon Cortex</b>, tu sistema operativo inteligente."
+            "\n\nMi núcleo es multimodal y multi-agente:"
+            "\n✨ <b>Lumina</b> - Estrategia e Insights"
+            "\n⚡ <b>Nux</b> - Prospección y Ventas"
+            "\n📚 <b>Memorís</b> - Base de Conocimiento"
+            "\n🎙️ <b>Vox</b> - Tu voz de confianza"
         )
     except Exception as e:
         logger.exception(f"Error sending start message: {e}")
         await update.message.reply_text(
-            f"Hola {user.first_name}! Soy Aureon, tu sistema operativo de negocios inteligente. Mi núcleo es multimodal: puedo leer texto, ver imágenes y escuchar tu voz."
+            f"Hola {user.first_name}! Soy Aureon Cortex, tu sistema operativo inteligente."
         )
 
 
@@ -61,13 +67,11 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             file = await context.bot.get_file(photo.file_id)
             img_bytes = io.BytesIO()
             await file.download_to_memory(img_bytes)
-            attachments.append(
-                {
-                    "type": "image",
-                    "data": img_bytes.getvalue(),
-                    "mime_type": "image/jpeg",
-                }
-            )
+            attachments.append({
+                "type": "image",
+                "data": img_bytes.getvalue(),
+                "mime_type": "image/jpeg",
+            })
             logger.info(f"Image received from {username}")
 
         # 2. Handle Voice
@@ -75,25 +79,20 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             file = await context.bot.get_file(update.message.voice.file_id)
             voice_bytes = io.BytesIO()
             await file.download_to_memory(voice_bytes)
-            attachments.append(
-                {
-                    "type": "audio",
-                    "data": voice_bytes.getvalue(),
-                    "mime_type": "audio/ogg",
-                }
-            )
+            attachments.append({
+                "type": "audio",
+                "data": voice_bytes.getvalue(),
+                "mime_type": "audio/ogg",
+            })
             logger.info(f"Voice note received from {username}")
 
-        # 3. Process through Pydantic Brain
-        # Auto-detect if user wants audio response
+        # 3. Process through Aureon Cortex (Multi-Agent Router)
         wants_voice_response = bool(update.message.voice)
 
-        deps = AureonDependencies(
-            organization_id=None, # To be fetched from DB/Auth context if needed
-            context_data={"userName": username, "source": "telegram"}
-        )
-
-        answer_text = await pydantic_brain.process_query(text, deps, attachments=attachments)
+        ctx = {"userName": username, "source": "telegram", "user_id": user_id}
+        
+        # Route through Aureon Cortex
+        answer_text = await aureon_cortex.route(text, context=ctx, attachments=attachments)
 
         # 4. Reply
         if wants_voice_response:

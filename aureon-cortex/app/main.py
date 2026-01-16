@@ -66,8 +66,8 @@ async def lifespan(app: FastAPI):
 # App Definition
 app = FastAPI(
     title="Aureon Cortex",
-    description="The Cognitive Operating System Backend for Portality",
-    version="0.1.0-alpha",
+    description="The Cognitive Operating System Backend for Elevate OS - Multi-Agent Architecture",
+    version="1.0.0-alpha",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
