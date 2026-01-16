@@ -21,6 +21,7 @@ supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVIC
 class AureonDependencies(BaseModel):
     """Dependencies for the Aureon Agent."""
     organization_id: Optional[str] = None
+    context_data: Dict[str, Any] = Field(default_factory=dict)
 # Define the Model with Fallback Strategy
 try:
     from pydantic_ai.models.openai import OpenAIModel
@@ -233,7 +234,9 @@ class PydanticBrainService:
                     return result.data
 
             except Exception as e:
-                logger.error(f"❌ Provider {provider} failed: {e}")
+                import traceback
+                error_trace = traceback.format_exc()
+                logger.error(f"❌ Provider {provider.upper()} failed: {e}\n{error_trace}")
                 last_error = e
                 continue # Try next
         

@@ -15,15 +15,28 @@ class HydraPool:
         
         # Load keys from environment
         pool_json = os.getenv("VITE_GEMINI_KEY_POOL", "[]")
+        
+        # Clean up potential quoting issues from .env files
+        if pool_json.startswith("'") and pool_json.endswith("'"):
+            pool_json = pool_json[1:-1]
+        elif pool_json.startswith('"') and pool_json.endswith('"'):
+            pool_json = pool_json[1:-1]
+            
         try:
             self.keys = json.loads(pool_json)
+            logger.info(f"✅ Hydra: Loaded {len(self.keys)} keys from pool.")
         except Exception as e:
-            logger.error(f"Hydra: Error parsing GEMINI_KEY_POOL: {e}")
+            logger.error(f"Hydra: Error parsing GEMINI_KEY_POOL: {e}. Raw: {pool_json[:20]}...")
+            self.keys = []
         
         # Add the primary key if not in pool
         primary_key = os.getenv("GEMINI_API_KEY")
-        if primary_key and primary_key not in self.keys:
-            self.keys.insert(0, primary_key)
+        if primary_key:
+            # Clean primary key too
+            primary_key = primary_key.strip("'").strip('"')
+            if primary_key not in self.keys:
+                self.keys.insert(0, primary_key)
+                logger.info("🔑 Hydra: Added primary GEMINI_API_KEY to pool.")
             
         if not self.keys:
             logger.warning("Hydra: No API keys found in pool or GEMINI_API_KEY!")
