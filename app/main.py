@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.responses import ORJSONResponse, HTMLResponse
+from fastapi.responses import ORJSONResponse, HTMLResponse, RedirectResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -221,25 +221,30 @@ async def google_auth():
         
     redirect_uri = f"{settings.DOMAIN}/google/callback" if settings.DOMAIN else "https://cortex.elevatmarketing.com/google/callback"
     
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-            }
-        },
-        scopes=SCOPES
-    )
-    flow.redirect_uri = redirect_uri
-    
-    authorization_url, state = flow.authorization_url(
-        access_type='offline',
-        include_granted_scopes='true',
-        prompt='consent'
-    )
-    return RedirectResponse(authorization_url)
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                }
+            },
+            scopes=SCOPES
+        )
+        flow.redirect_uri = redirect_uri
+        
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent'
+        )
+        logger.info(f"🔗 Google Auth URL generated: {authorization_url}")
+        return RedirectResponse(authorization_url)
+    except Exception as e:
+        logger.error(f"❌ Google OAuth Error: {e}")
+        return {"error": f"Failed to generate auth URL: {str(e)}"}
 
 @app.get("/google/callback")
 async def google_callback(code: str):
