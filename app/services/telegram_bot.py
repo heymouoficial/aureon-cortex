@@ -210,6 +210,19 @@ async def handle_multimodal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🧠 Aureon está procesando tu solicitud..."
         )
 
+        # Prepare context for the agent
+        # Inject User Alias if available
+        user_alias = settings.TELEGRAM_USER_NAMES.get(user_id, username)
+        
+        context_data = {
+            "user_id": user_id,
+            "username": username,
+            "userName": user_alias,  # Vox looks for this specific key
+            "chat_id": chat_id,
+            "is_voice": bool(update.message.voice or update.message.video_note),
+            "platform": "telegram"
+        }
+
         text = update.message.text or update.message.caption or ""
         attachments = []
 

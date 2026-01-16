@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     ALLOWED_TELEGRAM_IDS: list[int] = [851917065] # Mou (CTO). Add others here.
     ALLOWED_PHONE_NUMBERS: list[str] = ["+573204770682", "+17867251511"] # Christian, Andrea
     
+    # User Aliases (Pseudonyms for the Bot)
+    TELEGRAM_USER_NAMES: dict[int, str] = {
+        851917065: "Mou",
+        # Add Andrea/Christo IDs here once they start the bot and you get their IDs via /id
+        # Example: 123456789: "Andrea"
+    }
+    
     # WhatsApp
     WHATSAPP_VERIFY_TOKEN: str = "Aureon_Secret_2026"
     WHATSAPP_API_TOKEN: str | None = None
