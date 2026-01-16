@@ -26,3 +26,5 @@ prometheus-fastapi-instrumentator
 orjson
 uvloop; sys_platform != 'win32'
 httptools; sys_platform != 'win32'
+groq
+mistralai
