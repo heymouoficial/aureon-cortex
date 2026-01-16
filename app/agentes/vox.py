@@ -9,6 +9,8 @@ from pydantic_ai import Agent
 from app.core.config import get_settings
 from app.utils.hydra import hydra_pool
 from app.agentes.memoris import Memoris
+from app.agentes.lumina import Lumina
+from app.agentes.scheduler import Scheduler
 from pydantic_ai import RunContext
 
 settings = get_settings()
@@ -38,17 +40,20 @@ Misión 🚀:
 - Si detectas una tarea o proyecto (ej: "Vernal", "Lanzamiento"):
   1. 🧠 "Pide la palabra": Ofrece contexto inmediato (RAG).
   2. "Oye, sobre Vernal, recuerda que tenemos pendiente X...".
-  3. Coordina con tus sub-agentes (Lumina, Nux) pero tú das la cara.
+  3. Coordina con tus sub-agentes (Lumina, Scheduler) pero tú das la cara.
 
 Herramientas 🛠️:
-- Tienes acceso a la "Memoria" (RAG). Úsala SIEMPRE que se mencione un cliente o proyecto.
-- No esperes a que te pregunten. Investiga y aporta valor."""
+- `consultar_memoria`: Úsala SIEMPRE que se mencione un cliente o proyecto pasado.
+- `sync_andrea_emails`: Úsala si preguntan por correos o pendientes de Andrea.
+- `pedir_estrategia`: Úsala si necesitas un plan detallado, blueprint, o análisis complejo (Lumina)."""
 
     def __init__(self):
         self.agent = None
         self.current_model = None
         self.current_key = None
-        self.memoris = Memoris()  # Instantiate Memoris
+        self.memoris = Memoris()
+        self.lumina = Lumina()
+        self.scheduler = Scheduler()
         self._init_agent()
     
     def _init_agent(self, model_index: int = 0):
@@ -73,12 +78,35 @@ Herramientas 🛠️:
                     deps_type=Dict[str, Any]
                 )
                 
-                # 🛠️ Register Memoris Tool
+                # 🛠️ Register Memoris Tool (RAG)
                 @self.agent.tool
                 async def consultar_memoria(ctx: RunContext[Dict[str, Any]], query: str) -> str:
-                    """Usa esto para buscar información sobre clientes, proyectos, o contexto histórico (RAG)."""
-                    logger.info(f"🧠 Vox consultando memoria: {query}")
+                    """Usa esto para buscar contexto, info de clientes, o historial en la base de datos."""
+                    logger.info(f"🧠 Vox -> Memoris: {query}")
                     return await self.memoris.recall(query, ctx.deps)
+
+                # 🛠️ Register Scheduler Tool (Email/Notion)
+                @self.agent.tool
+                async def sync_andrea_emails(ctx: RunContext[Dict[str, Any]]) -> str:
+                    """
+                    Revisa los correos de Andrea (Gmail) y crea tareas en Notion si hay algo nuevo.
+                    Devuelve un resumen de lo que encontró. Úsalo para responder "¿Revisaste el correo?".
+                    """
+                    logger.info(f"🧠 Vox -> Scheduler (Sync Emails)")
+                    res = await self.scheduler.sync_emails()
+                    if not res['created'] and not res['ignored']:
+                        return "No encontré correos nuevos de Andrea/Elevat en las últimas 48h."
+                    return f"Resumen Sync: Creadas={res['created']}, Ignoradas(Duplicadas)={res['ignored']}."
+
+                # 🛠️ Register Lumina Tool (Strategy)
+                @self.agent.tool
+                async def pedir_estrategia(ctx: RunContext[Dict[str, Any]], solicitud: str) -> str:
+                    """
+                    Pide a Lumina (el estratega) que genere un plan, análisis o 'blueprint'.
+                    Úsalo cuando el usuario pida "flujos", "JSON", "arquitectura", o análisis complejos.
+                    """
+                    logger.info(f"🧠 Vox -> Lumina: {solicitud}")
+                    return await self.lumina.think(solicitud, ctx.deps)
 
                 logger.info(f"🎙️ Vox inicializado con {self.current_model} | Key: {key[:8]}...")
                 return True
